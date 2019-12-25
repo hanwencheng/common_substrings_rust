@@ -11,8 +11,4 @@ mod tests {
         build_array(string_vector);
         assert_eq!(add(2 , 2), 4);
     }
-
-
-
-
 }
