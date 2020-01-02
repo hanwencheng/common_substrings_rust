@@ -6,15 +6,15 @@ const MIN_LENGTH: usize = 3;
 const MIN_OCCURRENCES: usize = 2;
 
 struct Node {
-    source: Option<Vec<usize>>,
-    listed: Option<Vec<usize>>,
+    source: Vec<usize>,
+    listed: Vec<usize>,
 }
 
 impl Node {
     pub fn new(char: &str, source_index: usize) -> Node {
         Node {
-            source: Some(vec![source_index]),
-            listed: Some(vec![]),
+            source: vec![source_index],
+            listed: vec![],
         }
     }
 }
@@ -54,10 +54,12 @@ fn build_string(word: &str, trie: &mut BTreeMap<String, Node>, word_index: usize
     while let Some((index, char)) = iter.next() {
         let char_label = char.to_string();
         let insert_node = Node::new(&char_label, word_index);
-        let insert_result = trie.insert(char_label, insert_node);
-        if let Some(node) = insert_result {
-            println!("char insert node {:?}", node);
-        }
-        println!("char: {}, at index {}", char, index + MIN_LENGTH);
+        let contains_key = trie.contains_key(&char_label);
+        let current_node = trie.entry(char_label).or_insert(insert_node);
+        &current_node.listed.push(word_index);
+//        if let Some(list) = &mut current_node.listed{
+//            list.push(word_index);
+//        }
+        println!("char: {}, at index {}, {:?}", char, index + MIN_LENGTH, &current_node.listed);
     }
 }
