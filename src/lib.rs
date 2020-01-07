@@ -12,16 +12,11 @@ struct Node {
 }
 
 impl Node {
-    pub fn new(source_index: usize) -> Node {
-        let mut source:HashSet<usize> = HashSet::new();
-        source.insert(source_index);
-        Node {
-            source,
-            listed: false,
-            nodes: HashMap::new()
-        }
+    pub fn update(&mut self, source_index: usize) {
+        self.source.insert(source_index);
     }
-    pub fn root() -> Node {
+
+    pub fn new() -> Node {
         Node {
             source: HashSet::new(),
             listed: false,
@@ -49,27 +44,33 @@ pub fn add(a: i32, b: i32) -> i32 {
 }
 
 pub fn build_array(input: Vec<&str>) {
-    let mut trie= Node::root();
+    let mut trie= Node::new();
     for (word_index, word) in input.iter().enumerate() {
         println!("word: {}", word);
         build_string(&word, &mut trie, word_index);
     }
 }
 
-fn build_string(word: &str, trie: &mut Node, word_index: usize) {
+fn build_suffix(substring: &str, trie: &mut Node, word_index: usize) {
     let mut pointer = trie;
-    for x in 0 .. word.len() - MIN_LENGTH + 1 {
-        let substring = &word[x..];
-        println!("suffix is {}", substring);
-        let mut iter = substring.chars().skip(MIN_LENGTH - 1).enumerate();
-        while let Some((index, char)) = iter.next() {
-            let char_label = char.to_string();
-            let insert_node = Node::new(word_index);
-            let contains_key = pointer.nodes.contains_key(&char_label);
-            let current_node = pointer.nodes.entry(char_label).or_insert(insert_node);
-            &current_node.source.insert(word_index);
-            pointer = current_node;
-            println!("char: {}, at index {}, {:?}", char, index + MIN_LENGTH, &pointer.source);
+    println!("suffix is {}", substring);
+    let mut iter = substring.chars().skip(MIN_LENGTH - 1).enumerate();
+    while let Some((index, char)) = iter.next() {
+        let char_label = char.to_string();
+        let insert_node = Node::new();
+        let contains_key = pointer.nodes.contains_key(&char_label);
+        println!("is contained {}", contains_key);
+        let current_node = pointer.nodes.entry(char_label).or_insert(insert_node);
+        if index + MIN_LENGTH == substring.len() {
+            current_node.update(word_index);
         }
+        pointer = current_node;
+        println!("char: {}, at index {}, {:?}", char, index + MIN_LENGTH, &pointer.source);
+    }
+}
+
+fn build_string(word: &str, trie: &mut Node, word_index: usize) {
+    for x in 0 .. word.len() - MIN_LENGTH + 1 {
+        build_suffix(&word[x..], trie, word_index);
     }
 }
