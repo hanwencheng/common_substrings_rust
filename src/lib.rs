@@ -57,6 +57,10 @@ fn accumulate_source(trie: &mut Node) -> HashSet<usize> {
     return accumulated_sources;
 }
 
+//fn accumulate_horizontal(node: &mut node) -> HashSet<usize> {
+//
+//}
+
 fn build_array(input: Vec<&str>) -> (Node, HashMap<String, *mut Node>) {
     let mut trie = Node::new();
     let mut horizontal_trie_root: HashMap<String, *mut Node> = HashMap::new();
@@ -64,9 +68,9 @@ fn build_array(input: Vec<&str>) -> (Node, HashMap<String, *mut Node>) {
         println!("word: {}", word);
         build_suffices(&word, &mut trie, word_index, &mut horizontal_trie_root);
     }
+    accumulate_source(&mut trie);
     println!("horizontal root is {:?}", horizontal_trie_root);
     println!("trie root is {:?}", trie);
-    accumulate_source(&mut trie);
     return (trie, horizontal_trie_root);
 }
 
@@ -85,7 +89,7 @@ fn build_suffix(string: &str, trie: &mut Node, word_index: usize, last_suffix_le
             current_node.add_source(word_index);
             if substring_index > 0 {
                 unsafe {
-                    current_node.horizontal.insert(String::from(&substring[(substring_index-1)..]), last_suffix_leaf as *mut Node);
+                    current_node.horizontal.insert(String::from(&string[(substring_index-1)..]), last_suffix_leaf as *mut Node);
                     println!("last_suffix_leaf updated {:?}", current_node)
                 };
             }
@@ -100,8 +104,9 @@ fn build_suffix(string: &str, trie: &mut Node, word_index: usize, last_suffix_le
 fn build_suffices(word: &str, trie: &mut Node, word_index: usize, horizontal_root: &mut HashMap<String, *mut Node>) {
     if word.len() < MIN_LENGTH { return; }
     let mut last_suffix_leaf: *mut Node = &mut Node::new() as *mut Node;
-    for x in 0..word.len() - MIN_LENGTH + 1 {
+    for x in 0..word.len() - MIN_LENGTH - 1 {
         last_suffix_leaf = build_suffix(&word, trie, word_index, last_suffix_leaf, x);
     }
-    horizontal_root.insert(String::from(&word[word.len() - 3..]), last_suffix_leaf);
+    println!("last insert substring is {}",&word[(word.len() - MIN_LENGTH)..] );
+    horizontal_root.insert(String::from(&word[(word.len() - MIN_LENGTH)..]), last_suffix_leaf);
 }
