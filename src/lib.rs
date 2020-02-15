@@ -31,13 +31,13 @@ impl Node {
         self.source.insert(source_index);
     }
 
-    pub fn new(label: String) -> Node {
+    pub fn new(label: &str) -> Node {
         Node {
             source: HashSet::new(),
             listed: false,
             nodes: HashMap::new(),
             horizontal: HashMap::new(),
-            label
+            label: String::from(label)
         }
     }
 }
@@ -111,8 +111,8 @@ fn accumulate_horizontal (horizontal_parent_node: &mut Node) -> (HashSet<usize>,
 }
 
 fn build_array(input: Vec<&str>) -> (Node, Node) {
-    let mut trie = Node::new(String::from(""));
-    let mut horizontal_trie_root: Node = Node::new(String::from(""));
+    let mut trie = Node::new("");
+    let mut horizontal_trie_root: Node = Node::new("");
     for (word_index, word) in input.iter().enumerate() {
         println!("word: {}", word);
         build_suffices(&word, &mut trie, word_index, &mut horizontal_trie_root);
@@ -133,7 +133,7 @@ fn build_suffix(string: &str, trie: &mut Node, word_index: usize, last_suffix_le
     let mut iter = substring.chars().skip(MIN_LENGTH - 1).enumerate();
     while let Some((index, char)) = iter.next() {
         let char_label = char.to_string();
-        let insert_node = Node::new(String::from(substring));
+        let insert_node = Node::new(substring);
         let contains_key = pointer.nodes.contains_key(&char_label);
         let current_node = pointer.nodes.entry(char_label).or_insert(insert_node);
         if index + MIN_LENGTH == substring.len() {
@@ -154,7 +154,7 @@ fn build_suffix(string: &str, trie: &mut Node, word_index: usize, last_suffix_le
 
 fn build_suffices(word: &str, trie: &mut Node, word_index: usize, horizontal_root: &mut Node) {
     if word.len() < MIN_LENGTH { return; }
-    let mut last_suffix_leaf: *mut Node = &mut Node::new(String::from("")) as *mut Node;
+    let mut last_suffix_leaf: *mut Node = &mut Node::new("") as *mut Node;
     for x in 0..word.len() - MIN_LENGTH - 1 {
         last_suffix_leaf = build_suffix(&word, trie, word_index, last_suffix_leaf, x);
     }
