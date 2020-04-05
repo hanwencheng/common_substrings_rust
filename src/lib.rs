@@ -140,51 +140,64 @@ fn build_array(input: Vec<&str>) -> (Node, Node) {
     return (trie, horizontal_trie_root);
 }
 
+// for each word add all the suffices into the trie
 fn build_suffices(word: &str, trie: &mut Node, word_index: usize, horizontal_root: &mut Node) {
-    if word.len() < MIN_LENGTH { return; }
-    let suffices_branch_length = word.len() - MIN_LENGTH + 1;
     let mut last_suffix_leaves: LinkedList<*mut Node> = LinkedList::new();
-    for x in 0..(suffices_branch_length - 1) {
-        build_suffix(&word, trie, word_index, &mut last_suffix_leaves, x);
+    if word.len() >= MIN_LENGTH {
+        for x in 0..(word.len() - MIN_LENGTH + 1) {
+            build_suffix(&word, trie, word_index, &mut last_suffix_leaves, x, horizontal_root);
+        }
     }
+    assert!(last_suffix_leaves.len() == 0);
 }
 
-fn build_suffix(string: &str, trie: &mut Node, word_index: usize, last_suffix_leaves:&mut std::collections::LinkedList<*mut Node>, suffix_first_letter_index: usize){
-    let whole_suffix = &string[0..(MIN_LENGTH + suffix_first_letter_index)];
-    println!("suffix is {}", suffix);
+// add one suffix of a word into trie, iterate each char of the suffix
+fn build_suffix(word: &str, trie: &mut Node, word_index: usize, last_suffix_leaves:&mut std::collections::LinkedList<*mut Node>, first_char_index: usize, horizontal_root: &mut Node){
+    // let suffices_branch_length = word.len() - MIN_LENGTH + 1;
+    let suffix = &word[first_char_index..];
+    println!("suffix is {} and first char index is {}", suffix, first_char_index);
     let mut pointer = trie;
     // println!("-start suffix {}", suffix);
     let mut iter = suffix.chars().enumerate();
-    while let Some((index, char)) = iter.next() {
+    while let Some((current_char_index, char)) = iter.next() {
         // println!("--start char: {}, at index {}", char, index);
-        let suffix_substring_length = index + 1;
+        let current_branch_length = current_char_index + 1;
         let char_label = char.to_string();
-        let insert_node = Node::new(&suffix[0..suffix_substring_length]);
+        let current_branch_label = &suffix[0..current_branch_length];
+        let insert_node = Node::new(current_branch_label);
         // let contains_key = pointer.nodes.contains_key(&char_label);
         let current_node = pointer.nodes.entry(char_label).or_insert(insert_node);
         //if is is the end letter of the substring
-        
+        if current_branch_length < MIN_LENGTH {
+            pointer = current_node;
+            continue;
+        }
 
         //consume last verical
-        if suffix_first_letter_index >= 1 { // so that the last_suffix_leaves is not empty
-            let last_branch_label = &string[(suffix_first_letter_index - 1)..(suffix_first_letter_index + index)];
+        if first_char_index >= 1 { // so that the last_suffix_leaves is not empty
+            let suffix_label_in_last_branch = &word[(first_char_index - 1)..(first_char_index + current_branch_length)];
             unsafe {
                 let last_ptr = last_suffix_leaves.pop_front().unwrap();
-                current_node.horizontal.insert(String::from(last_branch_label), last_ptr);
+                current_node.horizontal.insert(String::from(suffix_label_in_last_branch), last_ptr);
             }
-            println!("cosume first one {}", last_branch_label);
+            println!("cosume pointer: {}", suffix_label_in_last_branch);
         }
         
         // println!("--index {} + 1  === substring.len() {}", index, suffix.len());
         current_node.add_source(word_index);
-        if suffix_substring_length == suffix.len() {
+        if current_branch_length == suffix.len() {
             // println!("--last substring_index {} and substring is {}", suffix_first_letter_index, suffix);
         }
-        if index > 0 {
-            let vertical_pointer = current_node as *mut Node;
+    
+        let vertical_pointer = current_node as *mut Node;
+        if current_branch_length == MIN_LENGTH{
+            horizontal_root.horizontal.insert(String::from(current_branch_label), vertical_pointer);
+            println!("add pointer to root: {}", current_branch_label);
+        } else {
             last_suffix_leaves.push_back(vertical_pointer);
-            println!("current label is {}", &suffix[0..suffix_substring_length]);
+            println!("add pointer: {}", current_branch_label);
         }
+        
         pointer = current_node;
     }
     println!("-finish suffix {}", suffix);
