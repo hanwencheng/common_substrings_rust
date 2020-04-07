@@ -44,13 +44,13 @@ impl Node {
 
 impl Display for Node {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "(source: {:?}, listed: {:?}), label: {}, horizontal: {:?} with Map {:?}", self.source, self.listed, self.label, self.horizontal, self.nodes)
+        write!(f, "(source: {:?}, listed: {:?}), label: {}, horizontal: {:?} with Map \n   {:?}", self.source, self.listed, self.label, self.horizontal, self.nodes)
     }
 }
 
 impl Debug for Node {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "(source: {:?}, listed: {:?}), label: {}, horizontal: {:?} with Map {:?}", self.source, self.listed, self.label, self.horizontal, self.nodes)
+        write!(f, "(source: {:?}, listed: {:?}), label: {}, horizontal: {:?} with Map \n   {:?}", self.source, self.listed, self.label, self.horizontal, self.nodes)
     }
 }
 
@@ -70,7 +70,8 @@ pub fn get_substrings(input: Vec<&str>) {
 fn list_sources(trie: &mut Node,  result_vec: &mut Vec<ResultSubstring>) {
     trie.nodes.iter_mut().for_each(|(_child_node_label, child_node)| {
         list_sources(child_node, result_vec);
-        if child_node.listed {
+        if child_node.listed == true {
+            println!("child node is {}", child_node);
             result_vec.push(ResultSubstring {
                 source: child_node.source.clone(),
                 substring: String::from(&child_node.label),
@@ -81,41 +82,41 @@ fn list_sources(trie: &mut Node,  result_vec: &mut Vec<ResultSubstring>) {
 }
 
 fn accumulate_vertical(trie: &mut Node) -> HashSet<usize> {
-    let diffrentiate_sources = trie.nodes.iter_mut().fold(trie.source.clone(), |acc: HashSet<usize>, (_child_node_label, child_node)| {
+    let accumulated = trie.nodes.iter_mut().fold(HashSet::new(), |acc: HashSet<usize>, (_child_node_label, child_node)| {
         let child_sources = accumulate_vertical(child_node);
-        //if child is listed, 
-        if child_sources.len() < MIN_OCCURRENCES {
-            return acc;
-        }
-        return acc.difference(&child_sources).cloned().collect();
+        return acc.union(&child_sources).cloned().collect();
     });
 
-    if diffrentiate_sources.len() >= MIN_OCCURRENCES {
+    let remained_occurrence:HashSet<usize> = trie.source.difference(&accumulated).cloned().collect();
+    if remained_occurrence.len() >= MIN_OCCURRENCES {
         trie.listed = true;
         trie.source.clone()
     } else {
-        HashSet::new()
+        accumulated
     }
 }
 
 fn accumulate_horizontal(horizontal_parent_node: &mut Node) -> HashSet<usize> {
-    // println!("start horizontal is {:?}", horizontal_parent_node.horizontal);
-    let diffrentiate_sources = horizontal_parent_node.horizontal.iter_mut().fold(horizontal_parent_node.source.clone(), |acc: HashSet<usize>, (child_node_label, &mut child_node_pointer)| {
+    println!("start horizontal with label {:?}", horizontal_parent_node.label);
+    let accumulated = horizontal_parent_node.horizontal.iter_mut().fold(HashSet::new(), |acc: HashSet<usize>, (_child_node_label, &mut child_node_pointer)| {
         unsafe {
-            // println!("start loop with node {} and node is {} ", child_node_label, (*child_node_pointer));
+            println!("start loop with node {} and node is {} ", _child_node_label, (*child_node_pointer));
             let child_sources = accumulate_horizontal(&mut (*child_node_pointer));
-            if child_sources.len() < MIN_OCCURRENCES {
-                return acc;
-            }
-            return acc.difference(&child_sources).cloned().collect();
+            println!("child_sources source is {:?} for horizontal child label {}", child_sources,  _child_node_label);
+            return acc.union(&child_sources).cloned().collect();
         }
     });
 
-    if diffrentiate_sources.len() < MIN_OCCURRENCES {
-        horizontal_parent_node.listed = false;
+    let remained_occurrence:HashSet<usize> = horizontal_parent_node.source.difference(&accumulated).cloned().collect();
+    // println!("accumulated source is {:?} remained source is {:?} for node {}", accumulated, remained_occurrence, horizontal_parent_node.label);
+   
+
+    if remained_occurrence.len() >= MIN_OCCURRENCES {
         horizontal_parent_node.source.clone()
     } else {
-        HashSet::new()
+        horizontal_parent_node.listed = false;
+       
+        accumulated
     }
 }
 
@@ -127,7 +128,9 @@ fn build_array(input: Vec<&str>) -> (Node, Node) {
         // println!("word: {}", word);
         build_suffices(&word, &mut trie, word_index,&mut horizontal_trie_root);
     }
+    println!("horizontal is {} ", horizontal_trie_root);
     accumulate_vertical(&mut trie);
+
     accumulate_horizontal(&mut horizontal_trie_root);
     // println!("horizontal root is {}", horizontal_trie_root);
     // println!("trie root is {}", trie);
@@ -155,15 +158,15 @@ fn build_suffices(word: &str, trie: &mut Node, word_index: usize, horizontal_roo
 fn build_suffix(word: &str, trie: &mut Node, word_index: usize, last_suffix_leaves:&mut std::collections::LinkedList<*mut Node>, first_char_index: usize, horizontal_root: &mut Node){
     // let suffices_branch_length = word.len() - MIN_LENGTH + 1;
     let suffix = &word[first_char_index..];
-    println!("suffix is {} and first char index is {}", suffix, first_char_index);
+    println!("suffix is {}", suffix);
     let mut pointer = trie;
-    // println!("-start suffix {}", suffix);
     let mut iter = suffix.chars().enumerate();
     while let Some((current_char_index, char)) = iter.next() {
-        // println!("--start char: {}, at index {}", char, index);
+       
         let current_branch_length = current_char_index + 1;
         let char_label = char.to_string();
         let current_branch_label = &suffix[0..current_branch_length];
+        println!("start for branch : {}", current_branch_label);
         let insert_node = Node::new(current_branch_label);
         // let contains_key = pointer.nodes.contains_key(&char_label);
         let current_node = pointer.nodes.entry(char_label).or_insert(insert_node);
@@ -178,24 +181,23 @@ fn build_suffix(word: &str, trie: &mut Node, word_index: usize, last_suffix_leav
             let suffix_label_in_last_branch = &word[(first_char_index - 1)..(first_char_index + current_branch_length)];
             unsafe {
                 let last_ptr = last_suffix_leaves.pop_front().unwrap();
+                // current_node.horizontal.entry(String::from(suffix_label_in_last_branch)).or_insert(last_ptr);
                 current_node.horizontal.insert(String::from(suffix_label_in_last_branch), last_ptr);
+                println!("cosume pointer: {} and linked with {}", suffix_label_in_last_branch, &mut(*last_ptr));
             }
-            println!("cosume pointer: {}", suffix_label_in_last_branch);
+            
         }
         
-        // println!("--index {} + 1  === substring.len() {}", index, suffix.len());
         current_node.add_source(word_index);
-        if current_branch_length == suffix.len() {
-            // println!("--last substring_index {} and substring is {}", suffix_first_letter_index, suffix);
-        }
-    
         let vertical_pointer = current_node as *mut Node;
-        if current_branch_length == MIN_LENGTH{
-            horizontal_root.horizontal.insert(String::from(current_branch_label), vertical_pointer);
-            println!("add pointer to root: {}", current_branch_label);
-        } else {
+        if current_branch_length > MIN_LENGTH{
             last_suffix_leaves.push_back(vertical_pointer);
-            println!("add pointer: {}", current_branch_label);
+            println!("add pointer: {}", current_node.label);
+        } else if current_branch_length == MIN_LENGTH {
+            // if it is the last min length suffix of the whole word, then add it to root
+            // horizontal_root.horizontal.entry(String::from(current_branch_label)).or_insert(vertical_pointer);
+            horizontal_root.horizontal.insert(String::from(current_branch_label),vertical_pointer);
+            println!("add last pointer to root: {}, {:?}", current_node.label, current_node.horizontal);
         }
         
         pointer = current_node;
