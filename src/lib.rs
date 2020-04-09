@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet, LinkedList};
 use std::fmt::{Debug, Display, Formatter};
 use std::fmt;
+use std::rc::{Rc, Weak};
+use std::cell::RefCell;
 
 const MIN_LENGTH: usize = 3;
 const MIN_OCCURRENCES: usize = 2;
@@ -8,8 +10,8 @@ const MIN_OCCURRENCES: usize = 2;
 struct Node {
     source: HashSet<usize>,
     listed: bool,
-    nodes: HashMap<String, Node>,
-    horizontal: HashMap<String, *mut Node>,
+    nodes: HashMap<String, Rc<RefCell<Node>>>,
+    horizontal: HashMap<String, Rc<RefCell<Node>>>,
     label: String,
 }
 
@@ -40,7 +42,11 @@ impl Node {
             label: String::from(label),
         }
     }
-}
+
+    pub fn set_listing(&mut self, shoud_listing: bool) {
+        self.listed = shoud_listing;
+    }
+ }
 
 impl Display for Node {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -62,90 +68,86 @@ pub fn add(a: i32, b: i32) -> i32 {
     a + b
 }
 
-/* main entry */
-pub fn get_substrings(input: Vec<&str>) {
-    let (mut built_trie, mut horizontal_root) = build_array(input);
-}
 
-fn list_sources(trie: &mut Node,  result_vec: &mut Vec<ResultSubstring>) {
-    trie.nodes.iter_mut().for_each(|(_child_node_label, child_node)| {
-        list_sources(child_node, result_vec);
-        if child_node.listed == true {
-            println!("child node is {}", child_node);
+fn list_sources(trie_ref: Rc<RefCell<Node>>,  result_vec: &mut Vec<ResultSubstring>) {
+    trie_ref.borrow_mut().nodes.iter_mut().for_each(|(_child_node_label, child_node_ref)| {
+        list_sources(child_node_ref.clone(), result_vec);
+    
+        if child_node_ref.borrow().listed == true {
+            println!("child node is {}", child_node_ref.borrow());
             result_vec.push(ResultSubstring {
-                source: child_node.source.clone(),
-                substring: String::from(&child_node.label),
-                weight: child_node.label.chars().count() * child_node.source.len(),
+                source: child_node_ref.borrow().source.clone(),
+                substring: String::from(child_node_ref.borrow().label.clone()),
+                weight: child_node_ref.borrow().label.chars().count() * child_node_ref.borrow().source.len(),
             })
         }
     })
 }
 
-fn accumulate_vertical(trie: &mut Node) -> HashSet<usize> {
-    let accumulated = trie.nodes.iter_mut().fold(HashSet::new(), |acc: HashSet<usize>, (_child_node_label, child_node)| {
-        let child_sources = accumulate_vertical(child_node);
+fn accumulate_vertical(trie_ref: &Rc<RefCell<Node>>) -> HashSet<usize> {
+    let accumulated = trie_ref.borrow_mut().nodes.iter_mut().fold(HashSet::new(), |acc: HashSet<usize>, (_child_node_label, child_node_pointer)| {
+        let child_sources = accumulate_vertical(child_node_pointer);
         return acc.union(&child_sources).cloned().collect();
     });
 
-    let remained_occurrence:HashSet<usize> = trie.source.difference(&accumulated).cloned().collect();
+    let remained_occurrence:HashSet<usize> = trie_ref.borrow().source.difference(&accumulated).cloned().collect();
     if remained_occurrence.len() >= MIN_OCCURRENCES {
-        trie.listed = true;
-        trie.source.clone()
+        trie_ref.borrow_mut().set_listing(true);
+        trie_ref.borrow().source.clone()
     } else {
         accumulated
     }
 }
 
-fn accumulate_horizontal(horizontal_parent_node: &mut Node) -> HashSet<usize> {
-    println!("start horizontal with label {:?}", horizontal_parent_node.label);
-    let accumulated = horizontal_parent_node.horizontal.iter_mut().fold(HashSet::new(), |acc: HashSet<usize>, (_child_node_label, &mut child_node_pointer)| {
+fn accumulate_horizontal(horizontal_parent_node_ref: &Rc<RefCell<Node>>) -> HashSet<usize> {
+    println!("start horizontal with label {:?}", horizontal_parent_node_ref.borrow().label);
+    let accumulated = horizontal_parent_node_ref.borrow().horizontal.iter().fold(HashSet::new(), |acc: HashSet<usize>, (_child_node_label, child_node_pointer)| {
         unsafe {
-            println!("start loop with node {} and node is {} ", _child_node_label, (*child_node_pointer));
-            let child_sources = accumulate_horizontal(&mut (*child_node_pointer));
+            println!("start loop with node {} and node is {} ", _child_node_label, child_node_pointer.borrow());
+            let child_sources = accumulate_horizontal(child_node_pointer);
+            drop(child_node_pointer as &Rc<RefCell<Node>>);
             println!("child_sources source is {:?} for horizontal child label {}", child_sources,  _child_node_label);
             return acc.union(&child_sources).cloned().collect();
         }
     });
 
-    let remained_occurrence:HashSet<usize> = horizontal_parent_node.source.difference(&accumulated).cloned().collect();
+    let remained_occurrence:HashSet<usize> = horizontal_parent_node_ref.borrow().source.difference(&accumulated).cloned().collect();
     // println!("accumulated source is {:?} remained source is {:?} for node {}", accumulated, remained_occurrence, horizontal_parent_node.label);
-   
 
     if remained_occurrence.len() >= MIN_OCCURRENCES {
-        horizontal_parent_node.source.clone()
+        horizontal_parent_node_ref.borrow().source.clone()
     } else {
-        horizontal_parent_node.listed = false;
+        horizontal_parent_node_ref.borrow_mut().set_listing(false);
        
         accumulated
     }
 }
 
-fn build_array(input: Vec<&str>) -> (Node, Node) {
-    let mut trie = Node::new("");
-    let mut horizontal_trie_root: Node = Node::new("");
+/* main entry */
+pub fn get_substrings(input: Vec<&str>) {
+    let trie = Rc::new(RefCell::new(Node::new("")));
+    let horizontal_trie_root = Rc::new(RefCell::new(Node::new("")));
     let result_vector= &mut Vec::new();
     for (word_index, word) in input.iter().enumerate() {
         // println!("word: {}", word);
-        build_suffices(&word, &mut trie, word_index,&mut horizontal_trie_root);
+        build_suffices(&word, &trie, word_index,&horizontal_trie_root);
     }
-    println!("horizontal is {} ", horizontal_trie_root);
-    accumulate_vertical(&mut trie);
+    println!("horizontal is {} ", horizontal_trie_root.borrow());
+    accumulate_vertical(&trie);
 
-    accumulate_horizontal(&mut horizontal_trie_root);
-    // println!("horizontal root is {}", horizontal_trie_root);
+    accumulate_horizontal( &horizontal_trie_root);
     // println!("trie root is {}", trie);
-    list_sources(&mut trie, result_vector);
+    list_sources(trie, result_vector);
     unsafe {
         (*result_vector).iter().for_each(|it| {
             println!("{}", it);
         });
     }
-    return (trie, horizontal_trie_root);
 }
 
 // for each word add all the suffices into the trie
-fn build_suffices(word: &str, trie: &mut Node, word_index: usize, horizontal_root: &mut Node) {
-    let mut last_suffix_leaves: LinkedList<*mut Node> = LinkedList::new();
+fn build_suffices(word: &str, trie: &Rc<RefCell<Node>>, word_index: usize, horizontal_root: &Rc<RefCell<Node>>) {
+    let mut last_suffix_leaves: LinkedList<Rc<RefCell<Node>>> = LinkedList::new();
     if word.len() >= MIN_LENGTH {
         for x in 0..(word.len() - MIN_LENGTH + 1) {
             build_suffix(&word, trie, word_index, &mut last_suffix_leaves, x, horizontal_root);
@@ -155,25 +157,21 @@ fn build_suffices(word: &str, trie: &mut Node, word_index: usize, horizontal_roo
 }
 
 // add one suffix of a word into trie, iterate each char of the suffix
-fn build_suffix(word: &str, trie: &mut Node, word_index: usize, last_suffix_leaves:&mut std::collections::LinkedList<*mut Node>, first_char_index: usize, horizontal_root: &mut Node){
+fn build_suffix(word: &str, trie:  &Rc<RefCell<Node>>, word_index: usize, last_suffix_leaves: &mut LinkedList<Rc<RefCell<Node>>>, first_char_index: usize, horizontal_root:  &Rc<RefCell<Node>>){
     // let suffices_branch_length = word.len() - MIN_LENGTH + 1;
     let suffix = &word[first_char_index..];
     println!("suffix is {}", suffix);
-    let mut pointer = trie;
-    let mut iter = suffix.chars().enumerate();
-    while let Some((current_char_index, char)) = iter.next() {
-       
+    suffix.chars().enumerate().fold(trie.clone(), |pointer: Rc<RefCell<Node>>, (current_char_index, char)| {
         let current_branch_length = current_char_index + 1;
         let char_label = char.to_string();
         let current_branch_label = &suffix[0..current_branch_length];
         println!("start for branch : {}", current_branch_label);
         let insert_node = Node::new(current_branch_label);
-        // let contains_key = pointer.nodes.contains_key(&char_label);
-        let current_node = pointer.nodes.entry(char_label).or_insert(insert_node);
+        let mut pointer_node = pointer.borrow_mut();
+        let current_node_ref = pointer_node.nodes.entry(char_label).or_insert(Rc::new(RefCell::new(insert_node)));
         //if is is the end letter of the substring
         if current_branch_length < MIN_LENGTH {
-            pointer = current_node;
-            continue;
+            return current_node_ref.clone();
         }
 
         //consume last verical
@@ -181,26 +179,23 @@ fn build_suffix(word: &str, trie: &mut Node, word_index: usize, last_suffix_leav
             let suffix_label_in_last_branch = &word[(first_char_index - 1)..(first_char_index + current_branch_length)];
             unsafe {
                 let last_ptr = last_suffix_leaves.pop_front().unwrap();
-                // current_node.horizontal.entry(String::from(suffix_label_in_last_branch)).or_insert(last_ptr);
-                current_node.horizontal.insert(String::from(suffix_label_in_last_branch), last_ptr);
-                println!("cosume pointer: {} and linked with {}", suffix_label_in_last_branch, &mut(*last_ptr));
+                current_node_ref.borrow_mut().horizontal.insert(String::from(suffix_label_in_last_branch), last_ptr);
+                // println!("cosume pointer: {} and linked with {}", suffix_label_in_last_branch, last_ptr);
             }
-            
         }
         
-        current_node.add_source(word_index);
-        let vertical_pointer = current_node as *mut Node;
+        current_node_ref.borrow_mut().add_source(word_index);
+        let vertical_pointer = current_node_ref.clone();
         if current_branch_length > MIN_LENGTH{
             last_suffix_leaves.push_back(vertical_pointer);
-            println!("add pointer: {}", current_node.label);
+            // println!("add pointer: {}",  current_node_ref);
         } else if current_branch_length == MIN_LENGTH {
             // if it is the last min length suffix of the whole word, then add it to root
-            // horizontal_root.horizontal.entry(String::from(current_branch_label)).or_insert(vertical_pointer);
-            horizontal_root.horizontal.insert(String::from(current_branch_label),vertical_pointer);
-            println!("add last pointer to root: {}, {:?}", current_node.label, current_node.horizontal);
+            horizontal_root.borrow_mut().horizontal.insert(String::from(current_branch_label),vertical_pointer);
+            // println!("add last pointer to root: {}, {:?}", current_node_ref.borrow().label, current_node_ref.borrow().horizontal);
         }
-        
-        pointer = current_node;
-    }
+        current_node_ref.clone()
+    });
+
     println!("-finish suffix {}", suffix);
 }
