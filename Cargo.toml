@@ -1,9 +1,13 @@
 [package]
-name = "common_substrings_rust"
+name = "common_substrings"
+description = "Finding all common strings"
 version = "0.1.0"
 authors = ["hanwencheng <heawen.cheng@gmail.com>"]
 edition = "2018"
-license = "MIT"
+license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/hanwencheng/common_substrings_rust"
+repository = "https://github.com/hanwencheng/common_substrings_rust"
 
 [dependencies]
 

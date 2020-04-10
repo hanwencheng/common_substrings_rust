@@ -11,12 +11,15 @@ struct Node {
     horizontal: HashMap<String, Rc<RefCell<Node>>>,
     label: String,
 }
-
+/// The result common substring
 #[derive(Clone)]
 pub struct Substring {
-    sources: HashSet<usize>,
-    name: String,
-    weight: usize,
+    /// sources indicates where it comes from
+    pub sources: HashSet<usize>,
+    /// the name of the substring
+    pub name: String,
+    /// the weight = (sources number) * (name chars), which could used to sort the captured substrings. 
+    pub weight: usize,
 }
 
 impl Display for Substring {
@@ -59,7 +62,26 @@ impl Debug for Node {
     }
 }
 
-/* main entry */
+/// The function used to get all the common strings in the strings list,
+/// # Arguments
+///
+/// * `input` - The target input string vector.
+/// * `min_occurrences` The minimal occurrence of the captured common substrings.
+/// * `min_leng` The minial length of the captured common substrings.
+/// 
+/// # Example
+/// 
+/// ```
+///  use common_substrings::get_substrings;
+///  let input_strings = vec!["java", "javascript", "typescript", "coffeescript", "coffee"];
+///  let result_substrings = get_substrings(input_strings, 2, 3);
+/// ```
+/// which gives the result list of 
+/// ```shell
+/// Substring(sources: {2, 3}, name: escript, weight: 14)
+/// Substring(sources: {1, 0}, name: java, weight: 8)
+/// Substring(sources: {4, 3}, name: coffee, weight: 12)
+/// ```
 pub fn get_substrings(
     input: Vec<&str>,
     min_occurrences: usize,

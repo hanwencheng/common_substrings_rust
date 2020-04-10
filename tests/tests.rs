@@ -1,18 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use common_substrings_rust::{get_substrings, Substring};
+    use common_substrings::{get_substrings};
 
     #[test]
     fn it_works() {
         let test_samples = vec![
-            "java",
-            "offe",
-            "coffescript",
-            "typescript",
-            "typed",
-            "javacoffie",
-            "fessss",
-            "fe",
+            "java", "javascript", "typescript", "coffeescript", "coffee"
         ];
 
         let result_substrings = get_substrings(test_samples, 2, 3);
