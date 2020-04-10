@@ -3,5 +3,13 @@ name = "common_substrings_rust"
 version = "0.1.0"
 authors = ["hanwencheng <heawen.cheng@gmail.com>"]
 edition = "2018"
+license = "MIT"
 
 [dependencies]
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "benchmark"
+harness = false

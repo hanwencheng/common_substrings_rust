@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use common_substrings_rust::*;
+    use common_substrings_rust::get_substrings;
+    // use super::*;
+    use test::Bencher;
 
     #[test]
     fn it_works() {
@@ -8,7 +10,8 @@ mod tests {
         let string_vector = vec!["java", "javascript", "pythonscript"];
         const STRING_ARRAY:[&str; 3] = ["java", "javascript", "pythonsscript"];
 
-        build_array(string_vector);
+        get_substrings(string_vector);
         assert_eq!(add(2 , 2), 4);
     }
 }
+
