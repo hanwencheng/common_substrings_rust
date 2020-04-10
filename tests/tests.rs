@@ -1,17 +1,24 @@
 #[cfg(test)]
 mod tests {
-    use common_substrings_rust::get_substrings;
-    // use super::*;
-    use test::Bencher;
+    use common_substrings_rust::{get_substrings, Substring};
 
     #[test]
     fn it_works() {
-        let number_vector = vec![1, 2, 3];
-        let string_vector = vec!["java", "javascript", "pythonscript"];
-        const STRING_ARRAY:[&str; 3] = ["java", "javascript", "pythonsscript"];
+        let test_samples = vec![
+            "java",
+            "offe",
+            "coffescript",
+            "typescript",
+            "typed",
+            "javacoffie",
+            "fessss",
+            "fe",
+        ];
 
-        get_substrings(string_vector);
-        assert_eq!(add(2 , 2), 4);
+        let result_substrings = get_substrings(test_samples);
+        result_substrings.iter().for_each(|it| {
+            println!("{}", it);
+        });
+        assert!(true);
     }
 }
-

@@ -8,7 +8,7 @@ const MIN_LENGTH: usize = 3;
 const MIN_OCCURRENCES: usize = 2;
 
 struct Node {
-    source: HashSet<usize>,
+    sources: HashSet<usize>,
     listed: bool,
     nodes: HashMap<String, Rc<RefCell<Node>>>,
     horizontal: HashMap<String, Rc<RefCell<Node>>>,
@@ -17,25 +17,25 @@ struct Node {
 
 #[derive(Clone)]
 pub struct Substring {
-    source: HashSet<usize>,
+    sources: HashSet<usize>,
     name: String,
     weight: usize,
 }
 
 impl Display for Substring {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Substring(source: {:?}, name: {}, weight: {})", self.source, self.name, self.weight)
+        write!(f, "Substring(sources: {:?}, name: {}, weight: {})", self.sources, self.name, self.weight)
     }
 }
 
 impl Node {
     pub fn add_source(&mut self, source_index: usize) {
-        self.source.insert(source_index);
+        self.sources.insert(source_index);
     }
 
     pub fn new(label: &str) -> Node {
         Node {
-            source: HashSet::new(),
+            sources: HashSet::new(),
             listed: false,
             nodes: HashMap::new(),
             horizontal: HashMap::new(),
@@ -50,7 +50,8 @@ impl Node {
 
 impl Debug for Node {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "(source: {:?}, listed: {:?}), label: {}, horizontal: {:?} with Map \n   {:?}", self.source, self.listed, self.label, self.horizontal, self.nodes)
+        write!(f, "(sources: {:?}, listed: {:?}), label: {}, horizontal: {:?} with Map \n   {:?}",
+         self.sources, self.listed, self.label, self.horizontal, self.nodes)
     }
 }
 
@@ -66,9 +67,6 @@ pub fn get_substrings(input: Vec<&str>) -> Vec<Substring> {
 
     accumulate_horizontal( &horizontal_trie_root);
     list_sources(trie, &mut result_vector);
-    // (*result_vector).iter().for_each(|it| {
-    //     println!("{}", it);
-    // });
     result_vector
 }
 
@@ -78,9 +76,9 @@ fn list_sources(trie_ref: Rc<RefCell<Node>>,  result_vec: &mut Vec<Substring>) {
     
         if child_node_ref.borrow().listed == true {
             result_vec.push(Substring {
-                source: child_node_ref.borrow().source.clone(),
+                sources: child_node_ref.borrow().sources.clone(),
                 name: String::from(child_node_ref.borrow().label.clone()),
-                weight: child_node_ref.borrow().label.chars().count() * child_node_ref.borrow().source.len(),
+                weight: child_node_ref.borrow().label.chars().count() * child_node_ref.borrow().sources.len(),
             })
         }
     })
@@ -92,10 +90,10 @@ fn accumulate_vertical(trie_ref: &Rc<RefCell<Node>>) -> HashSet<usize> {
         return acc.union(&child_sources).cloned().collect();
     });
 
-    let remained_occurrence:HashSet<usize> = trie_ref.borrow().source.difference(&accumulated).cloned().collect();
+    let remained_occurrence:HashSet<usize> = trie_ref.borrow().sources.difference(&accumulated).cloned().collect();
     if remained_occurrence.len() >= MIN_OCCURRENCES {
         trie_ref.borrow_mut().set_listing(true);
-        trie_ref.borrow().source.clone()
+        trie_ref.borrow().sources.clone()
     } else {
         accumulated
     }
@@ -108,10 +106,10 @@ fn accumulate_horizontal(horizontal_parent_node_ref: &Rc<RefCell<Node>>) -> Hash
         return acc.union(&child_sources).cloned().collect();
     });
 
-    let remained_occurrence:HashSet<usize> = horizontal_parent_node_ref.borrow().source.difference(&accumulated).cloned().collect();
+    let remained_occurrence:HashSet<usize> = horizontal_parent_node_ref.borrow().sources.difference(&accumulated).cloned().collect();
 
     if remained_occurrence.len() >= MIN_OCCURRENCES {
-        horizontal_parent_node_ref.borrow().source.clone()
+        horizontal_parent_node_ref.borrow().sources.clone()
     } else {
         horizontal_parent_node_ref.borrow_mut().set_listing(false);
        
