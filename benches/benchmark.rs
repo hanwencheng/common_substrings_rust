@@ -11,7 +11,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         "javacoffie",
         "fessss",
         "fe",
-    ])));
+    ], 2, 3)));
 }
 
 criterion_group!(benches, criterion_benchmark);

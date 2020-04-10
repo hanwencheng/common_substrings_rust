@@ -15,7 +15,7 @@ mod tests {
             "fe",
         ];
 
-        let result_substrings = get_substrings(test_samples);
+        let result_substrings = get_substrings(test_samples, 2, 3);
         result_substrings.iter().for_each(|it| {
             println!("{}", it);
         });
