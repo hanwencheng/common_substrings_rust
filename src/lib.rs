@@ -150,7 +150,6 @@ fn accumulate_horizontal(
         HashSet::new(),
         |acc: HashSet<usize>, (_child_node_label, child_node_pointer)| {
             let child_sources = accumulate_horizontal(child_node_pointer, min_occurrences);
-            drop(child_node_pointer as &Rc<RefCell<Node>>);
             return acc.union(&child_sources).cloned().collect();
         },
     );
