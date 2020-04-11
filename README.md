@@ -26,13 +26,13 @@ Substring(sources: {4, 3}, name: coffee, weight: 12)
 
 * `input` - The target input string vector.
 * `min_occurrences` The minimal occurrence of the captured common substrings.
-* `min_leng` The minial length of the captured common substrings.
+* `min_length` The minimal length of the captured common substrings.
 
 ## Algorithm
 
 Explanation [here](https://github.com/hanwencheng/gists/blob/master/find-all-common-substrings.md)
 
-## Other implementation
+## Other implementations
 
 * [Javascript](https://github.com/hanwencheng/CommonSubstrings)
 

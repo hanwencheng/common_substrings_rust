@@ -12,6 +12,6 @@ mod tests {
         result_substrings.iter().for_each(|it| {
             println!("{}", it);
         });
-        assert!(true);
+        assert_eq!(result_substrings.len(), 2);
     }
 }
