@@ -18,7 +18,7 @@ pub struct Substring {
     pub sources: HashSet<usize>,
     /// the name of the substring
     pub name: String,
-    /// the weight = (sources number) * (name chars), which could used to sort the captured substrings. 
+    /// the weight = (sources number) * (name chars), which could used to sort the captured substrings.
     pub weight: usize,
 }
 
@@ -68,15 +68,15 @@ impl Debug for Node {
 /// * `input` - The target input string vector.
 /// * `min_occurrences` The minimal occurrence of the captured common substrings.
 /// * `min_leng` The minial length of the captured common substrings.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```
 ///  use common_substrings::get_substrings;
 ///  let input_strings = vec!["java", "javascript", "typescript", "coffeescript", "coffee"];
 ///  let result_substrings = get_substrings(input_strings, 2, 3);
 /// ```
-/// which gives the result list of 
+/// which gives the result list of
 /// ```shell
 /// Substring(sources: {2, 3}, name: escript, weight: 14)
 /// Substring(sources: {1, 0}, name: java, weight: 8)
@@ -93,9 +93,9 @@ pub fn get_substrings(
     for (word_index, word) in input.iter().enumerate() {
         build_suffices(&word, &trie, word_index, &horizontal_trie_root, min_length);
     }
-    accumulate_vertical(&trie, min_occurrences);
+    accumulate_vertical(&trie, min_occurrences, min_length);
 
-    accumulate_horizontal(&horizontal_trie_root, min_occurrences);
+    accumulate_horizontal(&horizontal_trie_root, min_occurrences, min_length);
     list_sources(trie, &mut result_vector);
     result_vector
 }
@@ -119,55 +119,70 @@ fn list_sources(trie_ref: Rc<RefCell<Node>>, result_vec: &mut Vec<Substring>) {
         })
 }
 
-fn accumulate_vertical(trie_ref: &Rc<RefCell<Node>>, min_occurrences: usize) -> HashSet<usize> {
+fn accumulate_vertical(trie_ref: &Rc<RefCell<Node>>, min_occurrences: usize, min_length: usize) -> HashSet<usize> {
     let accumulated = trie_ref.borrow_mut().nodes.iter_mut().fold(
         HashSet::new(),
         |acc: HashSet<usize>, (_child_node_label, child_node_pointer)| {
-            let child_sources = accumulate_vertical(child_node_pointer, min_occurrences);
-            return acc.union(&child_sources).cloned().collect();
+            let child_sources = accumulate_vertical(child_node_pointer, min_occurrences, min_length);
+            if trie_ref.clone().borrow().label.len() <= min_length {
+                acc
+            } else {
+                acc.union(&child_sources).cloned().collect()
+            }
         },
     );
 
-    let remained_occurrence: HashSet<usize> = trie_ref
-        .borrow()
-        .sources
-        .difference(&accumulated)
-        .cloned()
-        .collect();
-    if remained_occurrence.len() >= min_occurrences {
-        trie_ref.borrow_mut().set_listing(true);
-        trie_ref.borrow().sources.clone()
-    } else {
+    if trie_ref.clone().borrow().label.len() <= min_length + 1 {
         accumulated
+    } else {
+        let remained_occurrence: HashSet<usize> = trie_ref
+          .borrow()
+          .sources
+          .difference(&accumulated)
+          .cloned()
+          .collect();
+        if remained_occurrence.len() >= min_occurrences {
+            trie_ref.borrow_mut().set_listing(true);
+            trie_ref.borrow().sources.clone()
+        } else {
+            accumulated
+        }
     }
 }
 
 fn accumulate_horizontal(
     horizontal_parent_node_ref: &Rc<RefCell<Node>>,
     min_occurrences: usize,
+    min_length: usize
 ) -> HashSet<usize> {
     let accumulated = horizontal_parent_node_ref.borrow().horizontal.iter().fold(
         HashSet::new(),
         |acc: HashSet<usize>, (_child_node_label, child_node_pointer)| {
-            let child_sources = accumulate_horizontal(child_node_pointer, min_occurrences);
-            drop(child_node_pointer as &Rc<RefCell<Node>>);
-            return acc.union(&child_sources).cloned().collect();
+            let child_sources = accumulate_horizontal(child_node_pointer, min_occurrences, min_length);
+            if horizontal_parent_node_ref.clone().borrow().label.len() <= min_length {
+                acc
+            } else {
+                acc.union(&child_sources).cloned().collect()
+            }
         },
     );
 
-    let remained_occurrence: HashSet<usize> = horizontal_parent_node_ref
-        .borrow()
-        .sources
-        .difference(&accumulated)
-        .cloned()
-        .collect();
-
-    if remained_occurrence.len() >= min_occurrences {
-        horizontal_parent_node_ref.borrow().sources.clone()
-    } else {
-        horizontal_parent_node_ref.borrow_mut().set_listing(false);
-
+    if horizontal_parent_node_ref.clone().borrow().label.len() <= min_length + 1 {
         accumulated
+    } else {
+        let remained_occurrence: HashSet<usize> = horizontal_parent_node_ref
+          .borrow()
+          .sources
+          .difference(&accumulated)
+          .cloned()
+          .collect();
+
+        if remained_occurrence.len() >= min_occurrences {
+            horizontal_parent_node_ref.borrow().sources.clone()
+        } else {
+            horizontal_parent_node_ref.borrow_mut().set_listing(false);
+            accumulated
+        }
     }
 }
 
@@ -219,12 +234,12 @@ fn build_suffix(
                 .nodes
                 .entry(char_label)
                 .or_insert(Rc::new(RefCell::new(insert_node)));
-            //if is is the end letter of the substring
+            //if branch not reach the list requirement
             if current_branch_length < min_length {
                 return current_node_ref.clone();
             }
 
-            //consume last verical
+            //consume last vertical
             if first_char_index >= 1 {
                 // so that the last_suffix_leaves is not empty
                 let suffix_label_in_last_branch =

@@ -5,10 +5,10 @@ mod tests {
     #[test]
     fn it_works() {
         let test_samples = vec![
-            "java", "javascript", "typescript", "coffeescript", "coffee"
+            "science", "typescript", "crisis", "kept", "javascript", "java"
         ];
 
-        let result_substrings = get_substrings(test_samples, 2, 3);
+        let result_substrings = get_substrings(test_samples, 2, 4);
         result_substrings.iter().for_each(|it| {
             println!("{}", it);
         });
