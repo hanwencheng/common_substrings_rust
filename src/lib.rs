@@ -95,7 +95,7 @@ pub fn get_substrings(
     }
     accumulate_vertical(&trie, min_occurrences, min_length);
 
-    accumulate_horizontal(&horizontal_trie_root, min_occurrences, min_length);
+    accumulate_horizontal(&horizontal_trie_root, min_occurrences);
     list_sources(trie, &mut result_vector);
     result_vector
 }
@@ -119,12 +119,17 @@ fn list_sources(trie_ref: Rc<RefCell<Node>>, result_vec: &mut Vec<Substring>) {
         })
 }
 
-fn accumulate_vertical(trie_ref: &Rc<RefCell<Node>>, min_occurrences: usize, min_length: usize) -> HashSet<usize> {
+fn accumulate_vertical(
+    trie_ref: &Rc<RefCell<Node>>,
+    min_occurrences: usize,
+    min_length: usize,
+) -> HashSet<usize> {
     let accumulated = trie_ref.borrow_mut().nodes.iter_mut().fold(
         HashSet::new(),
         |acc: HashSet<usize>, (_child_node_label, child_node_pointer)| {
-            let child_sources = accumulate_vertical(child_node_pointer, min_occurrences, min_length);
-            if trie_ref.clone().borrow().label.len() <= min_length {
+            let child_sources =
+                accumulate_vertical(child_node_pointer, min_occurrences, min_length);
+            if child_node_pointer.borrow().label.len() <= min_length {
                 acc
             } else {
                 acc.union(&child_sources).cloned().collect()
@@ -132,57 +137,48 @@ fn accumulate_vertical(trie_ref: &Rc<RefCell<Node>>, min_occurrences: usize, min
         },
     );
 
-    if trie_ref.clone().borrow().label.len() <= min_length + 1 {
-        accumulated
+    if trie_ref.borrow().label.len() < min_length {
+        return accumulated;
+    }
+
+    let remained_occurrence: HashSet<usize> = trie_ref
+        .borrow()
+        .sources
+        .difference(&accumulated)
+        .cloned()
+        .collect();
+    if remained_occurrence.len() >= min_occurrences {
+        trie_ref.borrow_mut().set_listing(true);
+        trie_ref.borrow().sources.clone()
     } else {
-        let remained_occurrence: HashSet<usize> = trie_ref
-          .borrow()
-          .sources
-          .difference(&accumulated)
-          .cloned()
-          .collect();
-        if remained_occurrence.len() >= min_occurrences {
-            trie_ref.borrow_mut().set_listing(true);
-            trie_ref.borrow().sources.clone()
-        } else {
-            accumulated
-        }
+        accumulated
     }
 }
 
 fn accumulate_horizontal(
     horizontal_parent_node_ref: &Rc<RefCell<Node>>,
     min_occurrences: usize,
-    min_length: usize
 ) -> HashSet<usize> {
     let accumulated = horizontal_parent_node_ref.borrow().horizontal.iter().fold(
         HashSet::new(),
         |acc: HashSet<usize>, (_child_node_label, child_node_pointer)| {
-            let child_sources = accumulate_horizontal(child_node_pointer, min_occurrences, min_length);
-            if horizontal_parent_node_ref.clone().borrow().label.len() <= min_length {
-                acc
-            } else {
-                acc.union(&child_sources).cloned().collect()
-            }
+            let child_sources = accumulate_horizontal(child_node_pointer, min_occurrences);
+            acc.union(&child_sources).cloned().collect()
         },
     );
 
-    if horizontal_parent_node_ref.clone().borrow().label.len() <= min_length + 1 {
-        accumulated
-    } else {
-        let remained_occurrence: HashSet<usize> = horizontal_parent_node_ref
-          .borrow()
-          .sources
-          .difference(&accumulated)
-          .cloned()
-          .collect();
+    let remained_occurrence: HashSet<usize> = horizontal_parent_node_ref
+        .borrow()
+        .sources
+        .difference(&accumulated)
+        .cloned()
+        .collect();
 
-        if remained_occurrence.len() >= min_occurrences {
-            horizontal_parent_node_ref.borrow().sources.clone()
-        } else {
-            horizontal_parent_node_ref.borrow_mut().set_listing(false);
-            accumulated
-        }
+    if remained_occurrence.len() >= min_occurrences {
+        horizontal_parent_node_ref.borrow().sources.clone()
+    } else {
+        horizontal_parent_node_ref.borrow_mut().set_listing(false);
+        accumulated
     }
 }
 
