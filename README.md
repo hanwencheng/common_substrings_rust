@@ -1,6 +1,6 @@
 # Find all common substrings
 
-A method for finding all common strings, particularly quick for large string samples. It only use the Rust `std` library.
+A method for finding all common strings.
 
 The algorithms uses a two dimension trie to get all the fragment. The vertical one is the standard suffix trie, but all the node of the last word in each suffix is linked, which I call them virtually horizontally linked.
 
