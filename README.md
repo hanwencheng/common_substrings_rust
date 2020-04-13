@@ -2,7 +2,7 @@
 
 ![versom](https://img.shields.io/crates/v/common_substrings)
 
-A method for finding all common strings.
+A method for finding all common strings. Check it on [Crates.io](https://crates.io/crates/common_substrings).
 
 The algorithms uses a two dimension trie to get all the fragment. The vertical one is the standard suffix trie, but all the node of the last word in each suffix is linked, which I call them virtually horizontally linked.
 
